@@ -17,6 +17,9 @@
     { id: 'youtube', name: 'YouTube', mark: true, appId: 'com.samsung.tv.cobalt-yt' }
   ];
   var PRIMARY = PRIMARY_APPS.map(function (a) { return a.id; }), APPS = PRIMARY_APPS.slice(), ALPHA = [];
+  /* HDMI inputs appear as Home tiles named after what is plugged in; unnamed ports show as HDMI n. */
+  var INPUT_NAMES = { 2: 'ATEM Mini' };
+  var KEPT_BRANDS = ['hbomax', 'spotify', 'tubi', 'hdmi'];
   var WALLS = window.CleanFrameWallpapers || [{ id: 'misty', name: 'Misty coast', tone: 'light', ut: { tr: 'mist', br: 'mist' }, frostVeil: .20 }];
   var ADAPTIVE_INK = window.CleanFrameAdaptiveInk || {};
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
@@ -326,7 +329,7 @@
     var legacyList = s.theme === 'list', h = [], recent = [], records = Array.isArray(s.appRecords) ? s.appRecords : [];
     records.slice(0, 256).forEach(function (a) {
       if (!a || !safeId(a.id) || !safeId(a.appId) || typeof a.name !== 'string' || !a.name.trim() || app(a.id)) return;
-      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: ['hbomax', 'spotify', 'tubi'].indexOf(a.brand) >= 0 ? a.brand : '', mark: ['hbomax', 'spotify', 'tubi'].indexOf(a.brand) >= 0, icon: safeIcon(a.icon) });
+      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: KEPT_BRANDS.indexOf(a.brand) >= 0 ? a.brand : '', mark: KEPT_BRANDS.indexOf(a.brand) >= 0, icon: safeIcon(a.icon) });
     });
     (Array.isArray(s.home) ? s.home : Array.isArray(s.dock) ? s.dock : []).forEach(function (id) {
       if (!safeId(id) || h.indexOf(id) >= 0 || h.length >= CAP) return;
@@ -456,7 +459,21 @@
     if (!a || busy) return;
     if (S.c.home.indexOf(id) >= 0) { c = next(S.c.home.slice(), S.c.recent.slice()); c.lastApp = id; write(c, 'Last app'); }
     S.press = id; S.lastLaunch = a.name;
-    perform(a.name, function (done) { FrameDevice.launchApp(a.appId, done); });
+    perform(a.name, function (done) { if (inputOf(a)) FrameDevice.hdmi(inputOf(a), done); else FrameDevice.launchApp(a.appId, done); });
+  }
+  function inputOf(a) { var m = /^hdmi(\d+)$/.exec(a.id); return m ? Number(m[1]) : 0; }
+  function inputName(n) { return INPUT_NAMES[n] || 'HDMI ' + n; }
+  function inputEntries() { return S.inputs.map(function (i) { return { appId: 'hdmi' + i.number, name: inputName(i.number), brand: 'hdmi', icon: '' }; }); }
+  function byName(a, b) { return app(a).name.toLowerCase().localeCompare(app(b).name.toLowerCase()); }
+  /* Keeps the inputs in the catalogue after either list refreshes. */
+  function mergeInputs() {
+    inputEntries().forEach(function (entry) {
+      var a = app(entry.appId);
+      if (!a) { a = { id: entry.appId }; APPS.push(a); }
+      a.appId = entry.appId; a.brand = 'hdmi'; a.mark = true; a.icon = ''; a.name = entry.name;
+      if (catalog.loaded && ALPHA.indexOf(a.id) < 0) ALPHA.push(a.id);
+    });
+    if (catalog.loaded) ALPHA.sort(byName);
   }
   function refreshCatalog() {
     var request, oldFocus;
@@ -478,8 +495,9 @@
         a.name = PRIMARY.indexOf(id) >= 0 ? PRIMARY_APPS[PRIMARY.indexOf(id)].name : String(entry.name).slice(0, 160);
         ALPHA.push(id);
       });
-      ALPHA.sort(function (a, b) { return app(a).name.toLowerCase().localeCompare(app(b).name.toLowerCase()); });
       catalog.loaded = true; catalog.error = null; catalog.revision++;
+      mergeInputs();
+      ALPHA.sort(byName);
       if (top().id === 'apps' && oldFocus && ALPHA.indexOf(oldFocus) >= 0) top().f.i = ALPHA.indexOf(oldFocus);
       norm(); render();
     });
@@ -512,7 +530,9 @@
     if (!FrameDevice.sources) return;
     FrameDevice.sources(function (err, list) {
       if (!err && Array.isArray(list) && list.length) {
+        list.forEach(function (i) { i.port = i.number; i.name = inputName(i.number); });
         S.inputs = list;
+        mergeInputs();
         norm();
         render();
       }
@@ -522,7 +542,7 @@
     var e = { id: 'inputs', f: { zone: 'list', i: clamp(S.inputsFocus || 0, 0, Math.max(0, S.inputs.length - 1)) } };
     push(e); refreshInputs(); return e;
   }
-  function inputTag(i) { return i.active ? 'Showing now' : i.connected ? 'Connected' : 'Nothing connected'; }
+  function inputTag(i) { return (INPUT_NAMES[i.number] ? 'HDMI ' + i.number + ' \u00b7 ' : '') + (i.active ? 'Showing now' : i.connected ? 'Connected' : 'Nothing connected'); }
   function switchInput(port) {
     var n = typeof port === 'object' && port ? port.number : Number(String(port).replace(/^hdmi/i, ''));
     if (!n || busy) return;
