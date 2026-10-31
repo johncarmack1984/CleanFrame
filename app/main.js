@@ -19,7 +19,8 @@
   var PRIMARY = PRIMARY_APPS.map(function (a) { return a.id; }), APPS = PRIMARY_APPS.slice(), ALPHA = [];
   /* HDMI inputs appear as Home tiles named after what is plugged in; unnamed ports show as HDMI n. */
   var INPUT_NAMES = { 2: 'ATEM Mini' };
-  var KEPT_BRANDS = ['hbomax', 'spotify', 'tubi', 'hdmi'];
+  /* Every bundled mark a saved record may name; anything else falls back to the TV's icon or a monogram. */
+  var KEPT_BRANDS = ['stremio', 'netflix', 'disneyplus', 'youtube', 'appletv', 'primevideo', 'abciview', 'sbs', 'applemusic', 'hbomax', 'spotify', 'tubi', 'hdmi'];
   var WALLS = window.CleanFrameWallpapers || [{ id: 'misty', name: 'Misty coast', tone: 'light', ut: { tr: 'mist', br: 'mist' }, frostVeil: .20 }];
   var ADAPTIVE_INK = window.CleanFrameAdaptiveInk || {};
   WALLS.forEach(function (w) { w.ut = w.ut || { tr: 'light', br: 'light' }; w.frostVeil = w.frostVeil || .12; });
@@ -329,7 +330,8 @@
     var legacyList = s.theme === 'list', h = [], recent = [], records = Array.isArray(s.appRecords) ? s.appRecords : [];
     records.slice(0, 256).forEach(function (a) {
       if (!a || !safeId(a.id) || !safeId(a.appId) || typeof a.name !== 'string' || !a.name.trim() || app(a.id)) return;
-      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: KEPT_BRANDS.indexOf(a.brand) >= 0 ? a.brand : '', mark: KEPT_BRANDS.indexOf(a.brand) >= 0, icon: safeIcon(a.icon) });
+      var brand = (window.FrameDevice && FrameDevice.brandOf && FrameDevice.brandOf(a.appId)) || a.brand;
+      APPS.push({ id: a.id, appId: a.appId, name: a.name.slice(0, 160), brand: KEPT_BRANDS.indexOf(brand) >= 0 ? brand : '', mark: KEPT_BRANDS.indexOf(brand) >= 0, icon: safeIcon(a.icon) });
     });
     (Array.isArray(s.home) ? s.home : Array.isArray(s.dock) ? s.dock : []).forEach(function (id) {
       if (!safeId(id) || h.indexOf(id) >= 0 || h.length >= CAP) return;

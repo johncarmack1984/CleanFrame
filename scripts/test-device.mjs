@@ -70,6 +70,13 @@ test('regional streaming apps stay distinct and system helpers stay hidden', () 
   assert.equal(apps.find(a => a.name === 'HBO Max').brand, 'hbomax');
 });
 
+test('saved records can recover their bundled mark from the launch ID', () => {
+  const h = harness();
+  assert.equal(h.device.brandOf('MCmYXNxgcu.DisneyPlus'), 'disneyplus');
+  assert.equal(h.device.brandOf('cj37Ni3qXM.HBONow'), 'hbomax');
+  assert.equal(h.device.brandOf('hdmi2'), '');
+});
+
 test('launch keeps its eight-second deadline independently of discovery', () => {
   const h = harness(), results = [];
   h.device.launchApp('Synthetic.App', error => results.push(error));

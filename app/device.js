@@ -23,6 +23,12 @@
     'ZODRT12q2l.WebAccountExtension', 'ByJlgt0XeD.CastSettingsApp', 'tv6pbVMQFF.PrivacyChoices'];
   var SELF = 'nClrkHome1.FrameHome';
   var HDMI_PORTS = [1, 2, 3, 4];
+  /* The bundled mark for a launch ID, so a saved Home record keeps its brand across reloads. */
+  function brandOf(id) {
+    var brand = '';
+    Object.keys(IDS).forEach(function (b) { if (IDS[b] === id) brand = b; });
+    return brand || EXTRA_BRANDS[id] || '';
+  }
   function api() { return window.tizen && window.tizen.application; }
   function selfId() {
     try { return api().getCurrentApplication().appInfo.id || SELF; }
@@ -187,5 +193,5 @@
       }, function (err) { finish(failure(err)); });
     } catch (err) { finish(failure(err)); }
   }
-  window.FrameDevice = { launch: launch, launchApp: launchApp, art: art, home: home, settings: settings, apps: apps, sources: sources, inputs: sources, setSource: setSource, hdmi: setSource };
+  window.FrameDevice = { launch: launch, launchApp: launchApp, art: art, home: home, settings: settings, apps: apps, sources: sources, inputs: sources, setSource: setSource, hdmi: setSource, brandOf: brandOf };
 }());
