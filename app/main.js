@@ -508,6 +508,7 @@
   }
   function openMessage(key) { push({ id: 'message', msg: key, f: { b: 0 } }); }
   function refreshInputs() {
+    /* Replaces the HDMI 1-4 placeholder with the ports the TV reports. */
     if (!FrameDevice.sources) return;
     FrameDevice.sources(function (err, list) {
       if (!err && Array.isArray(list) && list.length) {
@@ -521,6 +522,7 @@
     var e = { id: 'inputs', f: { zone: 'list', i: clamp(S.inputsFocus || 0, 0, Math.max(0, S.inputs.length - 1)) } };
     push(e); refreshInputs(); return e;
   }
+  function inputTag(i) { return i.active ? 'Showing now' : i.connected ? 'Connected' : 'Nothing connected'; }
   function switchInput(port) {
     var n = typeof port === 'object' && port ? port.number : Number(String(port).replace(/^hdmi/i, ''));
     if (!n || busy) return;
@@ -924,12 +926,8 @@
       reason: flat ? 'Choose Photo in Background to use rotation.' : 'Timed changes pause while Settings or another panel is open.' }];
     return [{ id: 'samsung', title: '', items: [
       { action: 'samsung.home', label: 'Samsung Home', description: 'Open Samsung’s Home screen' },
-      { action: 'samsung.settings', label: 'TV settings', description: 'Picture, sound and network settings' },
-      { action: 'samsung.hdmi1', label: 'HDMI 1', description: 'Switch to HDMI 1' },
-      { action: 'samsung.hdmi2', label: 'HDMI 2', description: 'Switch to HDMI 2' },
-      { action: 'samsung.hdmi3', label: 'HDMI 3', description: 'Switch to HDMI 3' },
-      { action: 'samsung.hdmi4', label: 'HDMI 4', description: 'Switch to HDMI 4' }
-    ] }];
+      { action: 'samsung.settings', label: 'TV settings', description: 'Picture, sound and network settings' }
+    ].concat(S.inputs.map(function (i) { return { action: 'samsung.hdmi' + i.number, label: i.name, description: inputTag(i) }; })) }];
   }
   function detailRows(t) {
     var rows = [[{ action: 'settings.back', label: t.group === 'rotation' ? 'Background' : 'Settings' }]];
@@ -1677,7 +1675,7 @@
       el.head.className = 's-head' + (f.zone === 'head' ? ' is-awake' : '');
       setHTML(el.list, items.map(function (item, i) {
         var focus = f.zone === 'list' && f.i === i;
-        var tag = item.active ? 'Active' : item.connected ? 'Connected' : 'HDMI Port';
+        var tag = inputTag(item);
         return '<button type="button" tabindex="-1" class="settings-group' + (focus ? ' is-focus' : '') + '" data-z="input" data-i="' + i + '" data-action="inputs.select.' + item.number + '">'
           + '<span class="settings-group-copy"><span class="settings-group-name">' + esc(item.name) + '</span><span class="settings-group-value">' + esc(tag) + '</span></span>'
           + icon('right') + '</button>';
@@ -1969,6 +1967,7 @@
   /* ---------- Start ---------- */
   cueL.innerHTML = icon('left'); cueR.innerHTML = icon('right');
   initialise();
+  if (FrameDevice.sources) refreshInputs();
   setLook({}, { transient: true, startup: true });
   norm(); render(); fit(); focusStage(); updateClock(); syncRotation();
 })();

@@ -62,7 +62,7 @@
     try {
       sys.getPropertyValue('VIDEOSOURCE', function (video) {
         var byNum = {};
-        list.forEach(function (item) { byNum[item.number] = item; });
+        list = [];
         function record(src, isConnected) {
           if (!src || src.type !== 'HDMI') return;
           var n = Number(src.number);
@@ -78,6 +78,7 @@
         if (video && Array.isArray(video.disconnected)) video.disconnected.forEach(function (s) { record(s, false); });
         if (video && Array.isArray(video.connected)) video.connected.forEach(function (s) { record(s, true); });
         list.sort(function (a, b) { return a.number - b.number; });
+        if (!list.length) list = defaultInputs();
         if (tvw && typeof tvw.getSource === 'function') {
           try {
             tvw.getSource(function (active) {
